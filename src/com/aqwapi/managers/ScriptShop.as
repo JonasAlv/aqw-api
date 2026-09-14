@@ -19,11 +19,13 @@ package com.aqwapi.managers {
 			} catch(e:Error) {}
 		}
 
-public function buyItem(itemName:String, quantity:int = 1):void {
+public function buyItem(itemNameOrId:String, quantity:int = 1):void {
 		if (quantity < 1) quantity = 1;
 		if (_game == null || _game.world == null || _game.ui == null || _game.ui.mcPopup == null || _game.ui.mcPopup.currentLabel != "Shop") return;
 
-		var target:String = itemName.toLowerCase();
+		var targetId:int = parseInt(itemNameOrId);
+		var isIdLookup:Boolean = !isNaN(targetId) && targetId > 0;
+		var target:String = itemNameOrId.toLowerCase();
 		try {
 			var shopInfo:* = null;
 			if (_game.world.shopinfo != null) shopInfo = _game.world.shopinfo;
@@ -35,7 +37,8 @@ public function buyItem(itemName:String, quantity:int = 1):void {
 				var sItems:Array = shopInfo.items;
 				for (var si:int = 0; si < sItems.length; si++) {
 					if (sItems[si] == null || sItems[si].sName == null) continue;
-					if (String(sItems[si].sName).toLowerCase() == target) {
+					var matches:Boolean = isIdLookup ? (sItems[si].ItemID == targetId) : (String(sItems[si].sName).toLowerCase() == target);
+					if (matches) {
 						// Check if we already own a non-stackable item (iStk == 1 means max 1 owned)
 						if (sItems[si].iStk != null && int(sItems[si].iStk) <= 1) {
 							// Already own this item, skip buying
@@ -64,11 +67,13 @@ public function buyItem(itemName:String, quantity:int = 1):void {
 		} catch(e:Error) {}
 	}
 
-public function sellItem(itemName:String, quantity:int = 1):void {
+public function sellItem(itemNameOrId:String, quantity:int = 1):void {
 		if (quantity < 1) quantity = 1;
 		if (_game == null || _game.world == null) return;
 
-		var target:String = itemName.toLowerCase();
+		var targetId:int = parseInt(itemNameOrId);
+		var isIdLookup:Boolean = !isNaN(targetId) && targetId > 0;
+		var target:String = itemNameOrId.toLowerCase();
 		try {
 			if (_game.world.myAvatar != null && _game.world.myAvatar.items != null) {
 				var myItems:Array = _game.world.myAvatar.items;
@@ -77,7 +82,8 @@ public function sellItem(itemName:String, quantity:int = 1):void {
 						trace("sellItem: skipping null item at index " + i);
 						continue;
 					}
-					if (String(myItems[i].sName).toLowerCase() == target) {
+					var matches:Boolean = isIdLookup ? (myItems[i].ItemID == targetId) : (String(myItems[i].sName).toLowerCase() == target);
+					if (matches) {
 						// Skip equipped items (can't sell equipped items)
 						if (myItems[i].bEquip == true) {
 							trace("sellItem: item is equipped, cannot sell: " + myItems[i].sName);

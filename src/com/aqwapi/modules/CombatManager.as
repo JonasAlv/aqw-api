@@ -17,7 +17,16 @@ package com.aqwapi.modules {
 		public  static var isSmart:Boolean      = false;
 		public  static var lockedMMID:String    = null;
 		public  static var targetName:String    = null;
-		public  static var skillMode:String     = "Base";
+		public static var skillMode:String = "Base";
+		
+		public static var farmClass:String = "";
+		public static var farmMode:String = "Base";
+		public static var soloClass:String = "";
+		public static var soloMode:String = "Base";
+		public static var bossClass:String = "";
+		public static var bossMode:String = "Base";
+		public static var dodgeClass:String = "";
+		public static var dodgeMode:String = "Base";
 		private static var _timer:Timer;
 		private static var _customRotation:Array = [5,4,3,2,1];
 		private static var _rotationIndex:int    = 0;

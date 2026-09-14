@@ -176,6 +176,26 @@ package com.aqwapi.commands {
 
 		}
 
+		public static function cmd_equipclass(cmd:Object, manager:ScriptManager):void {
+			var world:* = com.aqwapi.AqwApi.game.world;
+			var now:Number = new Date().getTime();
+			var qid:int;
+			if (cmd.args.length >= 1) {
+				var lType:String = cmd.args[0].toLowerCase();
+				manager.statusText = "Equipping Loadout: " + lType;
+				AqwApi.combat.dropCombat();
+				AqwApi.combat.equipLoadout(lType);
+				manager.waitTimer = now + 3000;
+				manager.currentIndex++;
+			} else {
+				if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.chatF != null) {
+					com.aqwapi.AqwApi.game.chatF.pushMsg("server", "Invalid EQUIPCLASS command syntax. Use Farm, Solo, Boss, or Dodge.", "API", "", 0);
+				}
+				manager.currentIndex++;
+			}
+			return;
+		}
+
 		public static function cmd_bank(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
 			var now:Number = new Date().getTime();
@@ -316,10 +336,14 @@ package com.aqwapi.commands {
 								manager.waitTimer = now + 1000;
 							}
 						}
-					} else {
-						manager.currentIndex++;
-					}
-					return;
+						} else {
+							if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.chatF != null) {
+								com.aqwapi.AqwApi.game.chatF.pushMsg("server", "Invalid KILL syntax. Use: KILL Monster Name, Item Name, Quantity", "API", "", 0);
+							}
+							manager.statusText = "KILL Syntax Error";
+							manager.currentIndex++;
+						}
+						return;
 						
 		}
 

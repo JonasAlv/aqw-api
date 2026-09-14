@@ -10,5 +10,17 @@ package com.aqwapi.interfaces {
         
         function get mode():String;
         function set mode(value:String):void;
+        
+        function get farmClass():String;
+        function set farmClass(value:String):void;
+        function get farmMode():String;
+        function set farmMode(value:String):void;
+        
+        function get soloClass():String;
+        function set soloClass(value:String):void;
+        function get soloMode():String;
+        function set soloMode(value:String):void;
+        
+        function equipLoadout(type:String):Boolean;
     }
 }

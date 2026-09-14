@@ -16,6 +16,6 @@ package com.aqwapi.interfaces {
         function addPendingDrop(item:Object):void;
         function removePendingDrop(index:int):void;
         function acceptPendingDrops(itemNames:Array):int;
-        function isTargetDrop(itemName:String):Boolean;
+        function isTargetDrop(item:Object):Boolean;
     }
 }

@@ -12,15 +12,21 @@ package com.aqwapi.managers {
             return getQuantity(itemName) >= quantity;
         }
 
-        public function getQuantity(itemName:String):int {
+        public function getQuantity(itemNameOrId:String):int {
             if (!_game || !_game.world || !_game.world.myAvatar || !_game.world.myAvatar.items) {
                 return 0;
             }
             
-            var targetName:String = itemName.toLowerCase();
+            var targetId:int = parseInt(itemNameOrId);
+            var isIdLookup:Boolean = !isNaN(targetId) && targetId > 0;
+            var targetName:String = itemNameOrId.toLowerCase();
+			
             for each (var item:Object in _game.world.myAvatar.items) {
-                if (item.sName != null && String(item.sName).toLowerCase() == targetName) {
-                    return (item.iQty != null) ? int(item.iQty) : 1;
+                if (item.sName != null) {
+                    var matches:Boolean = isIdLookup ? (item.ItemID == targetId) : (String(item.sName).toLowerCase() == targetName);
+                    if (matches) {
+                        return (item.iQty != null) ? int(item.iQty) : 1;
+                    }
                 }
             }
             return 0;
@@ -54,7 +60,11 @@ package com.aqwapi.managers {
 
             var itemName:String = String(item.sName).toLowerCase();
             for each (var targetName:String in targetNames) {
-                if (itemName == targetName) {
+				var targetId:int = parseInt(targetName);
+				var isIdLookup:Boolean = !isNaN(targetId) && targetId > 0;
+				var matches:Boolean = isIdLookup ? (item.ItemID == targetId) : (itemName == targetName);
+				
+                if (matches) {
                     if (countedNames[targetName]) return 0;
                     countedNames[targetName] = true;
                     var value:Number = parseFloat(item.iQty);
@@ -65,25 +75,34 @@ package com.aqwapi.managers {
         }
 
 public function equip(itemNameOrId:String):void {
-		if (!_game || !_game.world || !_game.world.myAvatar || !_game.world.myAvatar.items) return;
+			if (!_game || !_game.world || !_game.world.myAvatar || !_game.world.myAvatar.items) return;
             var itemId:int = parseInt(itemNameOrId);
             var isIdLookup:Boolean = !isNaN(itemId) && itemId > 0;
             var targetName:String = itemNameOrId.toLowerCase();
+			var bestMatch:Object = null;
             for each (var item:Object in _game.world.myAvatar.items) {
                 if (item == null || item.sName == null) continue;
-                var sNameL:String = String(item.sName).toLowerCase();
-                var matches:Boolean = isIdLookup ? (item.ItemID == itemId) : (sNameL == targetName || sNameL.indexOf(targetName) != -1);
-                if (matches) {
-                    if (item.bEquip == 1 || item.bEquip == "1" || item.bEquip == true) return;
-                    if ("sendEquipItemRequest" in _game.world) {
-                        _game.world.sendEquipItemRequest(item);
-                    } else if (_game.sfc != null) {
-                        var reqId:* = (_game.sfc.activeRoomId != null) ? _game.sfc.activeRoomId : _game.world.curRoom;
-                        _game.sfc.sendString("%xt%zm%equipItem%" + reqId + "%" + item.ItemID + "%");
-                    }
-                    return;
-                }
+				if (isIdLookup) {
+					if (item.ItemID == itemId) { bestMatch = item; break; }
+				} else {
+					var sNameL:String = String(item.sName).toLowerCase();
+					if (sNameL == targetName) {
+						bestMatch = item;
+						break;
+					} else if (sNameL.indexOf(targetName) != -1 && bestMatch == null) {
+						bestMatch = item;
+					}
+				}
             }
+			if (bestMatch != null) {
+				if (bestMatch.bEquip == 1 || bestMatch.bEquip == "1" || bestMatch.bEquip == true) return;
+				if ("sendEquipItemRequest" in _game.world) {
+					_game.world.sendEquipItemRequest(bestMatch);
+				} else if (_game.sfc != null) {
+					var reqId:* = (_game.sfc.activeRoomId != null) ? _game.sfc.activeRoomId : _game.world.curRoom;
+					_game.sfc.sendString("%xt%zm%equipItem%" + reqId + "%" + bestMatch.ItemID + "%");
+				}
+			}
         }
 
         public function equipUsable(itemNameOrId:String):void {

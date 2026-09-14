@@ -54,7 +54,7 @@ package com.aqwapi.managers {
                                     hasDrops = true;
                                     var item:* = val[subK];
                                     
-                                    var matchesTarget:Boolean = isTargetDrop(item.sName);
+                                    var matchesTarget:Boolean = isTargetDrop(item);
                                     var isAC:Boolean = (item.bCoins == 1 || item.bCoins == "1" || item.bCoins == true);
                                     
                                     if (_acceptAll || matchesTarget || (_acceptACs && isAC)) {
@@ -134,14 +134,38 @@ package com.aqwapi.managers {
                 if (pending == null || pending.sName == null) continue;
 
                 var pendingName:String = String(pending.sName).toLowerCase();
+				var pendingId:int = parseInt(pending.ItemID);
                 var matches:Boolean = false;
+				
+				// Exact match or ID match first
                 for each (var itemName:String in itemNames) {
+					var inId:int = parseInt(itemName);
                     var inLower:String = itemName.toLowerCase();
-                    if (pendingName == inLower || inLower == "any" || inLower == "all" || pendingName.indexOf(inLower) != -1) {
-                        matches = true;
-                        break;
-                    }
+					var isIdLookup:Boolean = !isNaN(inId) && inId > 0;
+					
+					if (inLower == "any" || inLower == "all") {
+						matches = true; break;
+					}
+					
+					if (isIdLookup) {
+						if (pendingId == inId) { matches = true; break; }
+					} else {
+						if (pendingName == inLower) { matches = true; break; }
+					}
                 }
+				
+				// Fallback to indexOf if no exact match
+				if (!matches) {
+					for each (var itemName2:String in itemNames) {
+						var inId2:int = parseInt(itemName2);
+						var inLower2:String = itemName2.toLowerCase();
+						var isIdLookup2:Boolean = !isNaN(inId2) && inId2 > 0;
+						if (!isIdLookup2 && pendingName.indexOf(inLower2) != -1) {
+							matches = true; break;
+						}
+					}
+				}
+
                 if (!matches) continue;
 
                 var roomId:* = (_game.sfc.activeRoomId != null) ? _game.sfc.activeRoomId : _game.sfc.myUserId;
@@ -152,15 +176,34 @@ package com.aqwapi.managers {
             return accepted;
         }
 
-        public function isTargetDrop(itemName:String):Boolean {
-            if (_targetDrops == null || _targetDrops.length == 0 || itemName == null) return false;
-            var searchName:String = itemName.toLowerCase();
+        public function isTargetDrop(item:Object):Boolean {
+            if (_targetDrops == null || _targetDrops.length == 0 || item == null || item.sName == null) return false;
+            var searchName:String = String(item.sName).toLowerCase();
+			var searchId:int = parseInt(item.ItemID);
+			
+			// Exact match or ID match first
             for each (var td:String in _targetDrops) {
                 var tdLower:String = td.toLowerCase();
-                if (searchName == tdLower || tdLower == "any" || tdLower == "all" || searchName.indexOf(tdLower) != -1) {
-                    return true;
-                }
+				var tdId:int = parseInt(td);
+				var isIdLookup:Boolean = !isNaN(tdId) && tdId > 0;
+				
+                if (tdLower == "any" || tdLower == "all") return true;
+				
+				if (isIdLookup) {
+					if (searchId == tdId) return true;
+				} else {
+					if (searchName == tdLower) return true;
+				}
             }
+			
+			// Fallback to indexOf
+			for each (var td2:String in _targetDrops) {
+                var tdLower2:String = td2.toLowerCase();
+				var tdId2:int = parseInt(td2);
+				var isIdLookup2:Boolean = !isNaN(tdId2) && tdId2 > 0;
+				if (!isIdLookup2 && searchName.indexOf(tdLower2) != -1) return true;
+			}
+			
             return false;
         }
     }
