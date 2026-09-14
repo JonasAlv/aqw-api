@@ -3,6 +3,8 @@ package com.aqwapi.events {
 
     public class ApiEvent extends Event {
         public static const NOTIFICATION:String = "apiNotification";
+        public static const STICKY_NOTIFICATION:String = "apiStickyNotification";
+        public static const REMOVE_STICKY:String = "apiRemoveSticky";
         public static const SCRIPT_STARTED:String = "apiScriptStarted";
         public static const SCRIPT_STOPPED:String = "apiScriptStopped";
         public static const COMBAT_TOGGLED:String = "apiCombatToggled";

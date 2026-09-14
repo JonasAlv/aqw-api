@@ -50,10 +50,13 @@ package com.aqwapi.commands {
 			var now:Number = new Date().getTime();
 			var qid:int;
 						if (cmd.args.length >= 1) {
-							var qidL:int = parseInt(cmd.args[0]);
-							manager.statusText = "Loading Quest " + qidL;
+							var qids:Array = [];
+							for (var i:int = 0; i < cmd.args.length; i++) {
+								qids.push(parseInt(cmd.args[i]));
+							}
+							manager.statusText = "Loading Quests: " + qids.join(",");
 							if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.sfc != null) {
-								AqwApi.transport.sendExtensionCommand("getQuests", [qidL]);
+								AqwApi.transport.sendExtensionCommand("getQuests", qids);
 							}
 							manager.waitTimer = now + 1500; // In a full implementation, wait for QUEST_UPDATED event
 							manager.currentIndex++;
@@ -215,18 +218,32 @@ package com.aqwapi.commands {
 						var mmid:String = (cmd.args.length >= 4) ? cmd.args[3] : null;
 						
 						manager.statusText = "Hunting " + monster + " for " + itemName + " (" + qty + ")";
-												var currentQty:int = AqwApi.inventory.getQuestQuantity(itemName);
-						
-						var targetDrops:Array = itemName.toLowerCase().split("|");
-						AqwApi.drops.targetDrops = targetDrops;
-						
-						if (currentQty >= qty) {
-							// Done - stop combat and advance
-							AqwApi.drops.targetDrops = [];
-							if (CombatManager.IS_ON) CombatManager.stop();
-							manager.currentIndex++;
-						} else {
-							// Still need items - show progress
+							var currentQty:int = AqwApi.inventory.getQuestQuantity(itemName);
+							
+							var targetDrops:Array = itemName.toLowerCase().split("|");
+							AqwApi.drops.targetDrops = targetDrops;
+							
+							if (cmd.lastQty !== currentQty) {
+								cmd.lastQty = currentQty;
+								com.aqwapi.AqwApi.dispatcher.dispatchEvent(new com.aqwapi.events.ApiEvent(
+									com.aqwapi.events.ApiEvent.STICKY_NOTIFICATION, 
+									"Farming " + monster + " for " + itemName + " " + currentQty + "/" + qty, 
+									{ id: "farming_status" }
+								));
+							}
+							
+							if (currentQty >= qty) {
+								// Done - stop combat and advance
+								com.aqwapi.AqwApi.dispatcher.dispatchEvent(new com.aqwapi.events.ApiEvent(
+									com.aqwapi.events.ApiEvent.REMOVE_STICKY, 
+									"", 
+									{ id: "farming_status" }
+								));
+								AqwApi.drops.targetDrops = [];
+								if (CombatManager.IS_ON) CombatManager.stop();
+								manager.currentIndex++;
+							} else {
+								// Still need items - show progress
 							
 							// Auto-pickup if the items we are farming dropped as real (non-temp) items
 							// Supports multiple items separated by '|' (e.g., "Bone Dust|Undead Essence")
@@ -630,6 +647,11 @@ package com.aqwapi.commands {
 						var qval:int = -1;
 						
 						var isCompleted:Boolean = false;
+						
+						if (world != null && world.questTree != null && world.questTree[qid] != null) {
+							qslot = world.questTree[qid].Slot;
+							qval = world.questTree[qid].Value;
+						}
 						
 						// Method 1: Local session tracking - set by COMPLETE when server confirms
 						// This is the most reliable since WE control when we mark it done

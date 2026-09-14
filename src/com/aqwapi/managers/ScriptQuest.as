@@ -29,7 +29,14 @@ package com.aqwapi.managers {
 
 		public function accept(questId:int):void {
             if (_game && _game.world && _game.world.acceptQuest != null) {
-                _game.world.acceptQuest(questId);
+                if (_game.world.questTree != null && _game.world.questTree[questId] != null) {
+                    _game.world.acceptQuest(questId);
+                } else {
+                    com.aqwapi.AqwApi.dispatcher.dispatchEvent(new com.aqwapi.events.ApiEvent(
+                        com.aqwapi.events.ApiEvent.NOTIFICATION,
+                        "Quest " + questId + " not loaded! Skipping accept."
+                    ));
+                }
             }
         }
 
