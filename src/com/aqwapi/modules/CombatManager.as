@@ -174,20 +174,6 @@ package com.aqwapi.modules {
 				return;
 			}
 			
-			// Legacy simple array support (e.g. [1, 2, 3, 4])
-			if (config is Array) {
-				var simpleSkills:Array = config as Array;
-				if (simpleSkills.length == 0) {
-					runSimpleRotation(world, avatar);
-					return;
-				}
-				if (_rotationIndex >= simpleSkills.length) _rotationIndex = 0;
-				if (tryFireSkill(world, avatar, int(simpleSkills[_rotationIndex]))) {
-					_rotationIndex = (_rotationIndex + 1) % simpleSkills.length;
-				}
-				return;
-			}
-			
 			// Skua AdvancedSkills.json support
 			var modeConfig:Object = null;
 			if (config[skillMode] != null) {
