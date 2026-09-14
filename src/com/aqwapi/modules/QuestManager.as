@@ -58,7 +58,7 @@ package com.aqwapi.modules {
 			}
 			
 			if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.MsgBox) {
-				if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Opening Auto-Quest Settings...", "BOT", "", 0);
+				if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Opening Auto-Quest Settings...", "API", "", 0);
 			}
 			
 			try {
@@ -141,7 +141,7 @@ package com.aqwapi.modules {
 					}
 			} catch (err:Error) {
 				if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.MsgBox) {
-					if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Error: " + err.message, "BOT", "", 0);
+					if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Error: " + err.message, "API", "", 0);
 				}
 			}
 		}
@@ -192,7 +192,7 @@ package com.aqwapi.modules {
 				_timer.removeEventListener(TimerEvent.TIMER, onTick);
 				_timer = null;
 				if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.MsgBox) {
-					if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Auto-Quest Disabled", "BOT", "", 0);
+					if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Auto-Quest Disabled", "API", "", 0);
 				}
 			}
 		}
@@ -211,7 +211,7 @@ package com.aqwapi.modules {
 				if (_questIDs[i].itemId > 0) strList.push(_questIDs[i].qid + ":" + _questIDs[i].itemId);
 				else strList.push(_questIDs[i].qid);
 			}
-			if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Auto-Quest Enabled: " + strList.join(","), "BOT", "", 0);
+			if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Auto-Quest Enabled: " + strList.join(","), "API", "", 0);
 
 			}
 		}
@@ -267,7 +267,7 @@ package com.aqwapi.modules {
 					}
 				}
 			} catch (err:Error) {
-				trace("AutoQuest Error: " + err.message, "BOT", "", 0);
+				trace("AutoQuest Error: " + err.message, "API", "", 0);
 			}
 		}
 	}

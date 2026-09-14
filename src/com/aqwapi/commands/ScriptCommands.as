@@ -113,7 +113,7 @@ package com.aqwapi.commands {
 						return;
 					} else {
 						// Timeout - failed to accept (probably one-time/daily done)
-						if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Quest " + qid + " failed to accept! Skipping...", "BOT", "", 0);
+						if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Quest " + qid + " failed to accept! Skipping...", "API", "", 0);
 						
 						var completeIdx:int = -1;
 						for (var i:int = manager.currentIndex + 1; i < manager.commands.length; i++) {
@@ -403,13 +403,14 @@ package com.aqwapi.commands {
 						if (cmd.args.length > 0) {
 							var msg:String = cmd.args.join(",");
 							if (com.aqwapi.AqwApi.game != null) {
-								if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", msg, "BOT", "", 0);
+								if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", msg, "API", "", 0);
 							}
 							try {
 								if (world != null && world.chatF != null) {
-// 									 world.chatF.pushMsg ("server", msg, "BOT", "", 0);
+// 									 world.chatF.pushMsg ("server", msg, "API", "", 0);
 								}
 							} catch (e:Error) {}
+							com.aqwapi.AqwApi.dispatcher.dispatchEvent(new com.aqwapi.events.ApiEvent(com.aqwapi.events.ApiEvent.NOTIFICATION, msg));
 							manager.statusText = msg;
 						}
 						manager.currentIndex++;
@@ -663,7 +664,7 @@ package com.aqwapi.commands {
 						// Debug log to chat
 						try {
 							if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.chatF != null) {
-// 								 com.aqwapi.AqwApi.game.chatF.pushMsg ("server", "[IFQUEST " + qid + "] slot=" + qslot + " need=" + qval + " done=" + isCompleted, "BOT", "", 0);
+// 								 com.aqwapi.AqwApi.game.chatF.pushMsg ("server", "[IFQUEST " + qid + "] slot=" + qslot + " need=" + qval + " done=" + isCompleted, "API", "", 0);
 							}
 						} catch(le:Error) {}
 						
@@ -851,7 +852,7 @@ package com.aqwapi.commands {
 			var qid:int;
 						// Print all monsters on the map with name, MMID, and cell to chat
 						if (world != null && world.monsters != null && com.aqwapi.AqwApi.game.chatF != null) {
-// 							 com.aqwapi.AqwApi.game.chatF.pushMsg ("server", "[MAPDUMP] map=" + world.strMapName + " cell=" + world.strFrame, "BOT", "", 0);
+// 							 com.aqwapi.AqwApi.game.chatF.pushMsg ("server", "[MAPDUMP] map=" + world.strMapName + " cell=" + world.strFrame, "API", "", 0);
 							for each (var dumpMon:* in world.monsters) {
 								if (dumpMon == null) continue;
 								var dumpName:String = "?";
@@ -861,7 +862,7 @@ package com.aqwapi.commands {
 								if (dumpMon.dataLeaf != null && dumpMon.dataLeaf.MonMapID != null) dumpMMID = String(dumpMon.dataLeaf.MonMapID);
 								else if (dumpMon.objData != null && dumpMon.objData.MonMapID != null) dumpMMID = String(dumpMon.objData.MonMapID);
 																if (dumpMon.strFrame != null) dumpCell = String(dumpMon.strFrame);
-// 								 com.aqwapi.AqwApi.game.chatF.pushMsg ("server", "  MON name=" + dumpName + " mmid=" + dumpMMID + " cell=" + dumpCell, "BOT", "", 0);
+// 								 com.aqwapi.AqwApi.game.chatF.pushMsg ("server", "  MON name=" + dumpName + " mmid=" + dumpMMID + " cell=" + dumpCell, "API", "", 0);
 							}
 						}
 						manager.currentIndex++;

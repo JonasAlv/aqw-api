@@ -99,6 +99,7 @@ package com.aqwapi.modules {
 				// Optionally merge a skills_custom.json placed next to the exe
 				// (On Android, this just safely checks the APK root where it won't exist)
 				var customFile:File = File.applicationDirectory.resolvePath("skills_custom.json");
+				
 				if (customFile.exists) {
 					try {
 						stream = new FileStream();
