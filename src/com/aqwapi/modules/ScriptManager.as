@@ -156,8 +156,8 @@ package com.aqwapi.modules {
 				}
 				stop();
 				statusText = "Script Finished!";
-				com.aqwapi.AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.SCRIPT_STOPPED, "Bot Script Finished!"));
-				if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Bot Script Finished!", "API", "", 0);
+				com.aqwapi.AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.SCRIPT_STOPPED, "Script Finished!"));
+				if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Script Finished!", "API", "", 0);
 				return;
 			}
 			

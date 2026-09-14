@@ -17,7 +17,7 @@ package com.aqwapi.modules {
 		public  static var isSmart:Boolean      = false;
 		public  static var lockedMMID:String    = null;
 		public  static var targetName:String    = null;
-		public  static var skillMode:String     = "Farm";
+		public  static var skillMode:String     = "Base";
 		private static var _timer:Timer;
 		private static var _customRotation:Array = [5,4,3,2,1];
 		private static var _rotationIndex:int    = 0;
@@ -77,11 +77,11 @@ package com.aqwapi.modules {
 
 		public static function reloadSkills(silent:Boolean = false):void {
 			try {
-				var bundledFile:File = File.applicationDirectory.resolvePath("assets/skills.json");
+				var bundledFile:File = File.applicationDirectory.resolvePath("assets/AdvancedSkills.json");
 				var stream:FileStream;
 				var raw:String;
 
-				// Always load the bundled assets/skills.json — works on ALL platforms
+				// Always load the bundled assets/AdvancedSkills.json — works on ALL platforms
 				// On Android this is inside the APK (read-only, always available)
 				if (bundledFile.exists) {
 					stream = new FileStream();
@@ -92,7 +92,7 @@ package com.aqwapi.modules {
 				} else {
 					_skillsData = {};
 					if (!silent && com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) {
-						com.aqwapi.AqwApi.game.chatF.pushMsg("server", "Warning: assets/skills.json missing!", "API", "", 0);
+						com.aqwapi.AqwApi.game.chatF.pushMsg("server", "Warning: assets/AdvancedSkills.json missing!", "API", "", 0);
 					}
 				}
 
@@ -118,7 +118,7 @@ package com.aqwapi.modules {
 
 			} catch (e:Error) {
 				if (!silent && com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) {
-					com.aqwapi.AqwApi.game.chatF.pushMsg("server", "skills.json error: " + e.message, "API", "", 0);
+					com.aqwapi.AqwApi.game.chatF.pushMsg("server", "AdvancedSkills.json error: " + e.message, "API", "", 0);
 				}
 			}
 		}
@@ -167,23 +167,60 @@ package com.aqwapi.modules {
 
 		private static function runAdvancedRotation(world:*, avatar:*, target:*):void {
 			var className:String = (avatar.objData && avatar.objData.strClassName) ? String(avatar.objData.strClassName) : "";
-			var skills:Array = findClassConfig(className) as Array;
-			if (skills == null || skills.length == 0) {
+			var config:Object = findClassConfig(className);
+			
+			if (config == null) {
 				runSimpleRotation(world, avatar);
 				return;
 			}
-
-			if (_rotationIndex >= skills.length) _rotationIndex = 0;
-			var skillId:int = int(skills[_rotationIndex]);
-			if (tryFireSkill(world, avatar, skillId)) {
-				_rotationIndex = (_rotationIndex + 1) % skills.length;
+			
+			// Legacy simple array support (e.g. [1, 2, 3, 4])
+			if (config is Array) {
+				var simpleSkills:Array = config as Array;
+				if (simpleSkills.length == 0) {
+					runSimpleRotation(world, avatar);
+					return;
+				}
+				if (_rotationIndex >= simpleSkills.length) _rotationIndex = 0;
+				if (tryFireSkill(world, avatar, int(simpleSkills[_rotationIndex]))) {
+					_rotationIndex = (_rotationIndex + 1) % simpleSkills.length;
+				}
+				return;
+			}
+			
+			// Skua AdvancedSkills.json support
+			var modeConfig:Object = null;
+			if (config[skillMode] != null) {
+				modeConfig = config[skillMode];
+			} else if (config["Base"] != null) {
+				modeConfig = config["Base"];
+			} else {
+				// Fallback if neither mode exists but other modes do, pick first
+				for (var key:String in config) {
+					modeConfig = config[key];
+					break;
+				}
+			}
+			
+			if (modeConfig == null || modeConfig.skills == null || !(modeConfig.skills is Array) || (modeConfig.skills as Array).length == 0) {
+				runSimpleRotation(world, avatar);
+				return;
+			}
+			
+			var advancedSkills:Array = modeConfig.skills as Array;
+			var useMode:String = modeConfig.skillUseMode != null ? String(modeConfig.skillUseMode) : "WaitForCooldown";
+			
+			if (useMode == "UseIfAvailable") {
+				runUseIfAvailable(world, avatar, target, advancedSkills);
+			} else {
+				runWaitForCooldown(world, avatar, target, advancedSkills);
 			}
 		}
 
 		private static function runWaitForCooldown(world:*, avatar:*, target:*, skills:Array):void {
 			if (_rotationIndex >= skills.length) _rotationIndex = 0;
 			var skill:Object = skills[_rotationIndex];
-			var skillId:int  = skill.skillId;
+			var skillId:int  = skill.skillId + 1; // Map Skua's 0-5 to in-game 1-6
 
 			if (!evaluateRules(skill.rules, world, avatar, target, skillId)) {
 				_rotationIndex = (_rotationIndex + 1) % skills.length;
@@ -197,8 +234,9 @@ package com.aqwapi.modules {
 		private static function runUseIfAvailable(world:*, avatar:*, target:*, skills:Array):void {
 			for (var i:int = 0; i < skills.length; i++) {
 				var skill:Object = skills[i];
-				if (!evaluateRules(skill.rules, world, avatar, target, skill.skillId)) continue;
-				if (tryFireSkill(world, avatar, skill.skillId)) return;
+				var skillId:int  = skill.skillId + 1; // Map Skua's 0-5 to in-game 1-6
+				if (!evaluateRules(skill.rules, world, avatar, target, skillId)) continue;
+				if (tryFireSkill(world, avatar, skillId)) return;
 			}
 		}
 
@@ -277,19 +315,40 @@ package com.aqwapi.modules {
 			}
 			if (auras == null) return false;
 			var search:String = auraName.toLowerCase();
-			if (auras is Array) {
-				for each (var a:* in auras) { if (a && a.name && String(a.name).toLowerCase() == search) return true; }
-			} else {
-				for (var k:String in auras) { var av:* = auras[k]; if (av && av.name && String(av.name).toLowerCase() == search) return true; }
-			}
+				if (auras is Array) {
+					for each (var a:* in auras) { 
+						if (a && a.name && String(a.name).toLowerCase() == search) return true; 
+						if (a && a.nam && String(a.nam).toLowerCase() == search) return true; 
+					}
+				} else {
+					for (var k:String in auras) { 
+						var av:* = auras[k]; 
+						if (av && av.name && String(av.name).toLowerCase() == search) return true; 
+						if (av && av.nam && String(av.nam).toLowerCase() == search) return true; 
+					}
+				}
 			return false;
 		}
 
 		private static function findClassConfig(className:String):Object {
+			if (_skillsData == null) init();
 			if (_skillsData == null || className == "") return null;
 			var lower:String = className.toLowerCase();
 			for (var key:String in _skillsData) { if (key.toLowerCase() == lower) return _skillsData[key]; }
 			return null;
+		}
+
+		public static function getAvailableModes(className:String):Array {
+			var config:Object = findClassConfig(className);
+			if (config == null) return ["Base"];
+			if (config is Array) return ["Base"];
+			
+			var modes:Array = [];
+			for (var mode:String in config) {
+				modes.push(mode);
+			}
+			if (modes.length == 0) return ["Base"];
+			return modes;
 		}
 
 		private static function runSimpleRotation(world:*, avatar:*):void {

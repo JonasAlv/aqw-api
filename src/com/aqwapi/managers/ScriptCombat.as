@@ -76,5 +76,13 @@ package com.aqwapi.managers {
         public function get isAutoRunning():Boolean {
             return CombatManager.IS_ON;
         }
+
+        public function get mode():String {
+            return CombatManager.skillMode;
+        }
+
+        public function set mode(value:String):void {
+            CombatManager.skillMode = value;
+        }
     }
 }

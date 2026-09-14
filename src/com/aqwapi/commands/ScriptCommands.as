@@ -12,7 +12,7 @@ package com.aqwapi.commands {
 			if (ScriptCommands.hasOwnProperty(methodName)) {
 				ScriptCommands[methodName](cmd, manager);
 			} else {
-				trace("Unknown bot command: " + cmd.action);
+				trace("Unknown command: " + cmd.action);
 				manager.currentIndex++;
 			}
 		}

@@ -7,5 +7,8 @@ package com.aqwapi.interfaces {
         function startCustom(rotation:String):void;
         function stopAuto():void;
         function get isAutoRunning():Boolean;
+        
+        function get mode():String;
+        function set mode(value:String):void;
     }
 }
