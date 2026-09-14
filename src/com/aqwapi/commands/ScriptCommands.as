@@ -698,10 +698,11 @@ package com.aqwapi.commands {
 								}
 							}
 							
-							// Debug log to chat
 						try {
 							if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.chatF != null) {
-// 								 com.aqwapi.AqwApi.game.chatF.pushMsg ("server", "[IFQUEST " + qid + "] slot=" + qslot + " need=" + qval + " done=" + isCompleted, "API", "", 0);
+								if (isCompleted) {
+									com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Quest " + qid + " is already completed! Skipping...", "API", "", 0);
+								}
 							}
 						} catch(le:Error) {}
 						
