@@ -2,6 +2,8 @@ package com.aqwapi.managers {
     import com.aqwapi.interfaces.IScriptQuest;
 	import flash.utils.Timer;
 	import flash.events.TimerEvent;
+	import com.aqwapi.events.ApiEvent;
+	import com.aqwapi.AqwApi;
 
     public class ScriptQuest implements IScriptQuest {
         private var _game:*;
@@ -14,9 +16,8 @@ package com.aqwapi.managers {
         }
 
 		public function load(questId:int):void {
-			if (_game != null && _game.sfc != null) {
-				var rId:* = (_game.sfc.activeRoomId != null) ? _game.sfc.activeRoomId : _game.sfc.myUserId;
-				_game.sfc.sendString("%xt%zm%getQuests%" + rId + "%" + questId + "%");
+			if (_game != null && _game.world != null && _game.world.getQuests != null) {
+				_game.world.getQuests([questId]);
 			}
 		}
 
@@ -32,8 +33,8 @@ package com.aqwapi.managers {
                 if (_game.world.questTree != null && _game.world.questTree[questId] != null) {
                     _game.world.acceptQuest(questId);
                 } else {
-                    com.aqwapi.AqwApi.dispatcher.dispatchEvent(new com.aqwapi.events.ApiEvent(
-                        com.aqwapi.events.ApiEvent.NOTIFICATION,
+                    AqwApi.dispatcher.dispatchEvent(new ApiEvent(
+                        ApiEvent.NOTIFICATION,
                         "Quest " + questId + " not loaded! Skipping accept."
                     ));
                 }

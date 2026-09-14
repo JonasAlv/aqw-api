@@ -3,6 +3,7 @@ package com.aqwapi.commands {
 		import com.aqwapi.data.EntityDTO;
 	import com.aqwapi.modules.ScriptManager;
 	import com.aqwapi.modules.CombatManager;
+	import com.aqwapi.events.ApiEvent;
 
 	public class ScriptCommands {
 
@@ -55,8 +56,8 @@ package com.aqwapi.commands {
 								qids.push(parseInt(cmd.args[i]));
 							}
 							manager.statusText = "Loading Quests: " + qids.join(",");
-							if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.sfc != null) {
-								AqwApi.transport.sendExtensionCommand("getQuests", qids);
+							if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.world != null && com.aqwapi.AqwApi.game.world.getQuests != null) {
+								com.aqwapi.AqwApi.game.world.getQuests(qids);
 							}
 							manager.waitTimer = now + 1500; // In a full implementation, wait for QUEST_UPDATED event
 							manager.currentIndex++;
@@ -225,8 +226,8 @@ package com.aqwapi.commands {
 							
 							if (cmd.lastQty !== currentQty) {
 								cmd.lastQty = currentQty;
-								com.aqwapi.AqwApi.dispatcher.dispatchEvent(new com.aqwapi.events.ApiEvent(
-									com.aqwapi.events.ApiEvent.STICKY_NOTIFICATION, 
+								com.aqwapi.AqwApi.dispatcher.dispatchEvent(new ApiEvent(
+									ApiEvent.STICKY_NOTIFICATION, 
 									"Farming " + monster + " for " + itemName + " " + currentQty + "/" + qty, 
 									{ id: "farming_status" }
 								));
@@ -234,8 +235,8 @@ package com.aqwapi.commands {
 							
 							if (currentQty >= qty) {
 								// Done - stop combat and advance
-								com.aqwapi.AqwApi.dispatcher.dispatchEvent(new com.aqwapi.events.ApiEvent(
-									com.aqwapi.events.ApiEvent.REMOVE_STICKY, 
+								com.aqwapi.AqwApi.dispatcher.dispatchEvent(new ApiEvent(
+									ApiEvent.REMOVE_STICKY, 
 									"", 
 									{ id: "farming_status" }
 								));
@@ -427,7 +428,7 @@ package com.aqwapi.commands {
 // 									 world.chatF.pushMsg ("server", msg, "API", "", 0);
 								}
 							} catch (e:Error) {}
-							com.aqwapi.AqwApi.dispatcher.dispatchEvent(new com.aqwapi.events.ApiEvent(com.aqwapi.events.ApiEvent.NOTIFICATION, msg));
+							com.aqwapi.AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.NOTIFICATION, msg));
 							manager.statusText = msg;
 						}
 						manager.currentIndex++;
@@ -682,8 +683,22 @@ package com.aqwapi.commands {
 								}
 							} catch(e3:Error) {}
 						}
-						
-						// Debug log to chat
+							// Method 4: Permanent story quest completion (sField + iIndex bitmask)
+							if (!isCompleted && world != null && world.questTree != null && world.questTree[qid] != null) {
+								var qData:Object = world.questTree[qid];
+								if (qData.sField != null && qData.iIndex >= 0) {
+									try {
+										if (world.getAchievement != null) {
+											var ach:int = world.getAchievement(qData.sField, qData.iIndex);
+											if (ach != 0) {
+												isCompleted = true;
+											}
+										}
+									} catch(e4:Error) {}
+								}
+							}
+							
+							// Debug log to chat
 						try {
 							if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.chatF != null) {
 // 								 com.aqwapi.AqwApi.game.chatF.pushMsg ("server", "[IFQUEST " + qid + "] slot=" + qslot + " need=" + qval + " done=" + isCompleted, "API", "", 0);
