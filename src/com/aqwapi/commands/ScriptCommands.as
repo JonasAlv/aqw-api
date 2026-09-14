@@ -842,6 +842,7 @@ package com.aqwapi.commands {
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							AqwApi.shop.loadShop(parseInt(cmd.args[0]));
+							manager.waitTimer = now + 2000;
 						}
 						manager.currentIndex++;
 						return;
@@ -854,6 +855,7 @@ package com.aqwapi.commands {
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							AqwApi.shop.buyItem(cmd.args.join(" "));
+							manager.waitTimer = now + 2000;
 						}
 						manager.currentIndex++;
 						return;
@@ -866,6 +868,7 @@ package com.aqwapi.commands {
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							AqwApi.shop.sellItem(cmd.args.join(" "));
+							manager.waitTimer = now + 2000;
 						}
 						manager.currentIndex++;
 						return;
