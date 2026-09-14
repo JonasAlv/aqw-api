@@ -18,30 +18,21 @@ Once initialized, the API will automatically bind to the game's internal data st
 
 ## Combat System & Class Skills
 
-The combat engine (`CombatManager`) operates entirely on a dynamic JSON configuration for class skill rotations, allowing updates without needing to recompile the API or the game client.
+The combat engine (`CombatManager`) is a highly advanced, 100% Skua-compatible engine. It operates entirely on Skua's `AdvancedSkills.json` dynamic configuration format.
 
-### Where is `skills.json` loaded from?
+### The AdvancedSkills.json System
+Instead of hardcoding class combos, the API relies on an external `AdvancedSkills.json` file. This file uses a complex object structure containing multiple "Modes" (e.g., `Base`, `Farm`, `Solo`, `Supp`, `Atk`) for every single class. 
 
-The Combat Manager uses a smart-merge feature. It reads the files in this order:
+The API's combat engine natively understands and executes Skua's complex skill mechanics, including:
+1. **Engine Types:**
+   - `UseIfAvailable`: A priority-based spam engine. It will mash keys from top-to-bottom as fast as they come off cooldown.
+   - `WaitForCooldown`: A strict sequence engine. It will patiently wait for the next skill in a combo sequence to come off cooldown before casting it.
+2. **Rules:**
+   - **Health/Mana Checks:** It dynamically checks your (or your target's) HP/MP thresholds (e.g., "Only use skill 4 if Health < 50%").
+   - **Auras:** It natively parses active buffs and debuffs via the game's raw `dataLeaf` properties. (e.g., "Only use the Nuke skill if the monster currently has the *Righteous Seal* aura").
 
-1. **User Custom File (Editable):** `skills_custom.json` (located in the application's root directory, right next to the executable/launcher)
-2. **Bundled Assets (Fallback):** `assets/skills.json` (compiled inside your application's assets folder)
-
-If the file does not exist in the root directory, the API will automatically copy the bundled asset to `skills_custom.json` in the root, allowing end-users to easily open the JSON file in any text editor and customize their class rotations.
-
-### Where to get `skills.json`?
-Since the API no longer hardcodes class skills, you must provide a `skills.json` file in your client's `assets/` directory. 
-
-**Format:** The file must be a JSON dictionary mapping lowercase class names to an array of skill indices (1-5).
-```json
-{
-    "archmage": [2, 5, 3, 4, 1],
-    "void highlord": [3, 4, 5, 2, 1],
-    "legion revenant": [4, 2, 3, 5, 1]
-}
-```
-
-*Note: For a fully up-to-date repository of class rotations, you can periodically reference the open-source `AdvancedSkills.json` from the Skua bot repository and adapt it to this clean array format. A default `skills.json` is shipped with the front-end client build.*
+### Updating Class Logic
+Because the API perfectly parses the Skua format, you never need to manually write combos. Whenever a new class is released, simply copy the latest `AdvancedSkills.json` from the open-source Skua repository directly into your client's `assets/` folder, and the API will immediately know how to play the class.
 
 ## Writing Scripts
 For a complete list of commands available to write automated `.txt` scripts (like `JOIN`, `KILL`, `IFQUEST`, etc.), please see [SCRIPTING.md](SCRIPTING.md).

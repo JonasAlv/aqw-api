@@ -13,7 +13,7 @@ The syntax generally follows the format: `ACTION arg1, arg2, arg3`.
 - **`KILL monster_name, item_name, quantity, mmid`**: Safely kills a specific monster in the map until you collect the required quantity of the specified drop. The bot automatically handles whitelisting and auto-accepting drops. 
    - **`mmid` (Optional)**: If you are fighting monsters that share the exact same name but drop different items (e.g., *Tsukumo-gami*), specify the exact Monster Map ID (mmid) as the 4th parameter.
 
-*(Combat classes and skill rotations are automatically managed by the `skills.json` configuration file, running your optimal combo in the background).*
+*(Combat classes and skill rotations are automatically managed by the `AdvancedSkills.json` configuration file, running your optimal combo in the background).*
 
 ## Advanced Questing
 The API provides advanced quest caching and conditional branching for smart saga scripts.
