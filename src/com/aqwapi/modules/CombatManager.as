@@ -96,25 +96,23 @@ package com.aqwapi.modules {
 					}
 				}
 
-				// Desktop only: optionally merge a skills_custom.json placed next to the exe
-				// Edit it freely on your PC — no adb needed
-				POCKET::IS_DESKTOP {
-					var customFile:File = File.applicationDirectory.resolvePath("skills_custom.json");
-					if (customFile.exists) {
-						try {
-							stream = new FileStream();
-							stream.open(customFile, FileMode.READ);
-							raw = stream.readUTFBytes(stream.bytesAvailable);
-							stream.close();
-							var customData:Object = JSON.parse(raw);
-							for (var key:String in customData) {
-								_skillsData[key] = customData[key];
-							}
-							if (!silent && com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) {
-								com.aqwapi.AqwApi.game.chatF.pushMsg("server", "Merged skills_custom.json override!", "API", "", 0);
-							}
-						} catch (ce:Error) {}
-					}
+				// Optionally merge a skills_custom.json placed next to the exe
+				// (On Android, this just safely checks the APK root where it won't exist)
+				var customFile:File = File.applicationDirectory.resolvePath("skills_custom.json");
+				if (customFile.exists) {
+					try {
+						stream = new FileStream();
+						stream.open(customFile, FileMode.READ);
+						raw = stream.readUTFBytes(stream.bytesAvailable);
+						stream.close();
+						var customData:Object = JSON.parse(raw);
+						for (var key:String in customData) {
+							_skillsData[key] = customData[key];
+						}
+						if (!silent && com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) {
+							com.aqwapi.AqwApi.game.chatF.pushMsg("server", "Merged skills_custom.json override!", "API", "", 0);
+						}
+					} catch (ce:Error) {}
 				}
 
 			} catch (e:Error) {
