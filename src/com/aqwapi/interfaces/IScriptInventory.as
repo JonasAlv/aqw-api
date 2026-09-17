@@ -4,6 +4,7 @@ package com.aqwapi.interfaces {
         function getQuantity(itemName:String):int;
         function getQuestQuantity(itemName:String):int;
         function equip(itemNameOrId:String):void;
+        function isEquipped(itemNameOrId:String):Boolean;
         function equipUsable(itemNameOrId:String):void;
         function bank(itemName:String):void;
         function unbank(itemName:String):void;

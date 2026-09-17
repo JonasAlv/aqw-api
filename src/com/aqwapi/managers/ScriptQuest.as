@@ -1,9 +1,11 @@
 package com.aqwapi.managers {
     import com.aqwapi.interfaces.IScriptQuest;
 	import flash.utils.Timer;
+	import flash.utils.getTimer;
 	import flash.events.TimerEvent;
 	import com.aqwapi.events.ApiEvent;
 	import com.aqwapi.AqwApi;
+	import com.aqwapi.utils.ApiLogger;
 
     public class ScriptQuest implements IScriptQuest {
         private var _game:*;
@@ -129,7 +131,7 @@ package com.aqwapi.managers {
             
             try {
                 if (_game.world.questTree != null) {
-                    var now:Number = new Date().getTime();
+                    var now:Number = getTimer();
                     for (var i:int = 0; i < _questIDs.length; i++) {
                         var qObj:Object = _questIDs[i];
                         var qid:int = qObj.qid;
@@ -163,7 +165,7 @@ package com.aqwapi.managers {
                     }
                 }
             } catch (err:Error) {
-                trace("AutoQuest Error: " + err.message);
+                ApiLogger.error("Quest", "AutoQuest Error: " + err.message);
             }
         }
     }

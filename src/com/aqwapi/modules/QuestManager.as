@@ -7,7 +7,9 @@ package com.aqwapi.modules {
 	import flash.text.TextFormat;
 	import flash.text.TextFormatAlign;
 	import flash.utils.Timer;
+	import flash.utils.getTimer;
 	import flash.display.Sprite;
+	import com.aqwapi.utils.ApiLogger;
 
 	public class QuestManager {
 		private static var _timer:Timer;
@@ -211,6 +213,7 @@ package com.aqwapi.modules {
 				if (_questIDs[i].itemId > 0) strList.push(_questIDs[i].qid + ":" + _questIDs[i].itemId);
 				else strList.push(_questIDs[i].qid);
 			}
+			ApiLogger.info("Quest", "Auto-Quest Enabled: " + strList.join(","));
 			if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Auto-Quest Enabled: " + strList.join(","), "API", "", 0);
 
 			}
@@ -222,7 +225,7 @@ package com.aqwapi.modules {
 
 			try {
 				if (world.questTree != null) {
-					var now:Number = new Date().getTime();
+					var now:Number = getTimer();
 					for (var i:int = 0; i < _questIDs.length; i++) {
 						var qObj:Object = _questIDs[i];
 						var qid:int = qObj.qid;
@@ -233,7 +236,7 @@ package com.aqwapi.modules {
 							lastAttempt = _lastTurnIns[qid];
 						}
 						
-						// Minimum 3.5 seconds between ANY action on this quest
+						// Minimum 2.0 seconds between ANY action on this quest
 						if (now - lastAttempt < 2000) {
 							continue;
 						}
@@ -267,7 +270,7 @@ package com.aqwapi.modules {
 					}
 				}
 			} catch (err:Error) {
-				trace("AutoQuest Error: " + err.message, "API", "", 0);
+				ApiLogger.error("Quest", "AutoQuest Error: " + err.message);
 			}
 		}
 	}

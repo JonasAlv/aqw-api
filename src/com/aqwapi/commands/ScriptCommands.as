@@ -4,6 +4,8 @@ package com.aqwapi.commands {
 	import com.aqwapi.modules.ScriptManager;
 	import com.aqwapi.modules.CombatManager;
 	import com.aqwapi.events.ApiEvent;
+	import com.aqwapi.utils.ApiLogger;
+	import flash.utils.getTimer;
 
 	public class ScriptCommands {
 
@@ -19,7 +21,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_join(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 					if (cmd.args.length >= 1) {
 						var mapName:String = cmd.args[0];
@@ -37,7 +39,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_reload(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 					manager.statusText = "Reloading Zone...";
 					AqwApi.combat.dropCombat();
@@ -48,7 +50,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_loadquest(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var qids:Array = [];
@@ -68,7 +70,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_getmapitem(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						// GETMAPITEM <itemID>, <qty>
 						// Sends getMapItem packet qty times with 1.5s between each
@@ -94,7 +96,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_accept(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 			
 			if (cmd.args.length >= 1) {
@@ -117,7 +119,7 @@ package com.aqwapi.commands {
 						return;
 					} else {
 						// Timeout - failed to accept (probably one-time/daily done)
-						if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Quest " + qid + " failed to accept! Skipping...", "API", "", 0);
+						ApiLogger.warn("Quest", "Quest " + qid + " failed to accept! Skipping...");
 						
 						var completeIdx:int = -1;
 						for (var i:int = manager.currentIndex + 1; i < manager.commands.length; i++) {
@@ -146,7 +148,7 @@ package com.aqwapi.commands {
 		}
 		public static function cmd_complete(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var cqid:int = parseInt(cmd.args[0]);
@@ -162,23 +164,62 @@ package com.aqwapi.commands {
 		}
 
 		public static function cmd_equip(cmd:Object, manager:ScriptManager):void {
-			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
-			var qid:int;
-						if (cmd.args.length >= 1) {
-							var equipName:String = cmd.args.join(", ").toLowerCase();
-							manager.statusText = "Equipping: " + equipName;
-							AqwApi.inventory.equip(equipName);
-							manager.waitTimer = now + 1500;
-							manager.currentIndex++;
-						}
-						return;
+			var now:Number = getTimer();
+			if (cmd.args.length < 1) {
+				manager.currentIndex++;
+				return;
+			}
 
+			var equipName:String = cmd.args.join(", ").toLowerCase();
+
+			// If already equipped, advance immediately!
+			if (AqwApi.inventory.isEquipped(equipName)) {
+				cmd.equipTimer = null;
+				cmd.waitInFlight = null;
+				manager.currentIndex++;
+				return;
+			}
+
+			// First tick: verify item presence in inventory, then trigger equip
+			if (cmd.equipTimer == null) {
+				if (!AqwApi.inventory.hasItem(equipName)) {
+					// Wait up to 2000ms if item was just bought / in flight
+					if (cmd.waitInFlight == null) cmd.waitInFlight = now;
+					if (now - cmd.waitInFlight < 2000) {
+						manager.statusText = "Waiting for " + equipName + " in inventory...";
+						return;
+					}
+					ApiLogger.warn("Inventory", "Cannot equip '" + equipName + "': item not in inventory!");
+					cmd.waitInFlight = null;
+					manager.currentIndex++;
+					return;
+				}
+
+				cmd.equipTimer = now;
+				cmd.waitInFlight = null;
+				manager.statusText = "Equipping: " + equipName;
+				AqwApi.inventory.equip(equipName);
+				return;
+			}
+
+			// Subsequent ticks: check if equipped
+			if (AqwApi.inventory.isEquipped(equipName)) {
+				cmd.equipTimer = null;
+				manager.currentIndex++;
+				return;
+			}
+
+			// Timeout after 3000ms
+			if (now - cmd.equipTimer >= 3000) {
+				ApiLogger.warn("Inventory", "Equip '" + equipName + "' timed out! Continuing...");
+				cmd.equipTimer = null;
+				manager.currentIndex++;
+			}
 		}
 
 		public static function cmd_equipclass(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 			if (cmd.args.length >= 1) {
 				var lType:String = cmd.args[0].toLowerCase();
@@ -188,9 +229,7 @@ package com.aqwapi.commands {
 				manager.waitTimer = now + 3000;
 				manager.currentIndex++;
 			} else {
-				if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.chatF != null) {
-					com.aqwapi.AqwApi.game.chatF.pushMsg("server", "Invalid EQUIPCLASS command syntax. Use Farm, Solo, Boss, or Dodge.", "API", "", 0);
-				}
+				ApiLogger.warn("Inventory", "Invalid EQUIPCLASS command syntax. Use Farm, Solo, Boss, or Dodge.");
 				manager.currentIndex++;
 			}
 			return;
@@ -198,7 +237,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_bank(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var bankName:String = cmd.args.join(", ").toLowerCase();
@@ -215,7 +254,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_unbank(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var unbankName:String = cmd.args.join(", ").toLowerCase();
@@ -230,7 +269,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_kill(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 					if (cmd.args.length >= 3) {
 						var monster:String = cmd.args[0];
@@ -337,9 +376,7 @@ package com.aqwapi.commands {
 							}
 						}
 						} else {
-							if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.chatF != null) {
-								com.aqwapi.AqwApi.game.chatF.pushMsg("server", "Invalid KILL syntax. Use: KILL Monster Name, Item Name, Quantity", "API", "", 0);
-							}
+						ApiLogger.warn("Combat", "Invalid KILL syntax. Use: KILL Monster Name, Item Name, Quantity");
 							manager.statusText = "KILL Syntax Error";
 							manager.currentIndex++;
 						}
@@ -350,7 +387,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_delay(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length > 0) {
 							var ms:int = parseInt(cmd.args[0]);
@@ -366,7 +403,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_getdrop(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 							if (cmd.args.length > 0 && world != null) {
 								var dropTarget:String = cmd.args[0].toLowerCase();
@@ -386,7 +423,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_dump_drops(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (world != null) {
 							var found:Boolean = false;
@@ -412,7 +449,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_test_drop(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (world != null) {
 							var found:Boolean = false;
@@ -440,7 +477,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_log(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length > 0) {
 							var msg:String = cmd.args.join(",");
@@ -462,7 +499,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_combat(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var combatArg:String = cmd.args[0].toLowerCase();
@@ -501,7 +538,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_autoquest(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							if (cmd.args[0].toLowerCase() == "stop") {
@@ -519,7 +556,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_label(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						manager.currentIndex++;
 						return;
@@ -528,7 +565,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_goto(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var labelName:String = cmd.args[0].toLowerCase();
@@ -546,7 +583,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_ifhas(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var targetItemName2:String = cmd.args[0].toLowerCase();
@@ -576,7 +613,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_ifnothas(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var targetItemName2:String = cmd.args[0].toLowerCase();
@@ -606,7 +643,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_ifrank(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 2) {
 							var factionName:String = cmd.args[0].toLowerCase();
@@ -635,7 +672,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_ifnotrank(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 2) {
 							var factionNameNot:String = cmd.args[0].toLowerCase();
@@ -664,7 +701,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_ifquest(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 					if (cmd.args.length >= 1) {
 						qid = parseInt(cmd.args[0]);
@@ -722,13 +759,9 @@ package com.aqwapi.commands {
 								}
 							}
 							
-						try {
-							if (com.aqwapi.AqwApi.game != null && com.aqwapi.AqwApi.game.chatF != null) {
-								if (isCompleted) {
-									com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Quest " + qid + " is already completed! Skipping...", "API", "", 0);
-								}
-							}
-						} catch(le:Error) {}
+						if (isCompleted) {
+							ApiLogger.info("Quest", "Quest " + qid + " is already completed! Skipping...");
+						}
 						
 						if (!isCompleted) {
 							manager.currentIndex += 2;
@@ -742,7 +775,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_ifnotquest(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var qidNot:int = parseInt(cmd.args[0]);
@@ -766,7 +799,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_skipcutscene(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (world != null && world.mcExtSWF != null && world.mcExtSWF.numChildren > 0) {
 							var ext:* = world.mcExtSWF.getChildAt(0);
@@ -791,7 +824,7 @@ package com.aqwapi.commands {
 		}
 		public static function cmd_ifgold(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var targetGold:int = parseInt(cmd.args[0]);
@@ -811,7 +844,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_iflevel(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							var targetLevel:int = parseInt(cmd.args[0]);
@@ -831,7 +864,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_waitfor(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length > 0) {
 							var waitTarget:String = cmd.args[0].toLowerCase();
@@ -861,34 +894,94 @@ package com.aqwapi.commands {
 		}
 
 		public static function cmd_loadshop(cmd:Object, manager:ScriptManager):void {
-			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
-			var qid:int;
-						if (cmd.args.length >= 1) {
-							AqwApi.shop.loadShop(parseInt(cmd.args[0]));
-							manager.waitTimer = now + 2000;
-						}
-						manager.currentIndex++;
-						return;
-						
+			var now:Number = getTimer();
+			if (cmd.args.length < 1) {
+				manager.currentIndex++;
+				return;
+			}
+
+			var shopId:int = parseInt(cmd.args[0]);
+
+			// Already loaded with this shop ID? Advance immediately!
+			if (AqwApi.shop.isShopLoaded && AqwApi.shop.loadedShopId == shopId) {
+				cmd.loadTimer = null;
+				manager.currentIndex++;
+				return;
+			}
+
+			// First tick: send the load request
+			if (cmd.loadTimer == null) {
+				cmd.loadTimer = now;
+				manager.statusText = "Loading Shop " + shopId + "...";
+				AqwApi.shop.loadShop(shopId);
+				return;
+			}
+
+			// Subsequent ticks: check if loaded
+			if (AqwApi.shop.isShopLoaded && AqwApi.shop.loadedShopId == shopId) {
+				cmd.loadTimer = null;
+				manager.currentIndex++;
+				return;
+			}
+
+			// Timeout after 5000ms
+			if (now - cmd.loadTimer >= 5000) {
+				ApiLogger.warn("Shop", "Shop " + shopId + " load timed out! Continuing...");
+				cmd.loadTimer = null;
+				manager.currentIndex++;
+			}
 		}
 
 		public static function cmd_buy(cmd:Object, manager:ScriptManager):void {
-			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
-			var qid:int;
-						if (cmd.args.length >= 1) {
-							AqwApi.shop.buyItem(cmd.args.join(" "));
-							manager.waitTimer = now + 2000;
-						}
-						manager.currentIndex++;
+			var now:Number = getTimer();
+			if (cmd.args.length < 1) {
+				manager.currentIndex++;
+				return;
+			}
+
+			var itemName:String = cmd.args[0];
+			var buyQty:int = (cmd.args.length >= 2) ? parseInt(cmd.args[1]) : 1;
+			if (isNaN(buyQty) || buyQty < 1) buyQty = 1;
+
+			// First tick: verify shop is ready, record initial quantity, send buy request
+			if (cmd.buyTimer == null) {
+				if (!AqwApi.shop.isShopLoaded) {
+					// If shop not loaded yet, wait up to 2000ms
+					if (cmd.waitShopTimer == null) cmd.waitShopTimer = now;
+					if (now - cmd.waitShopTimer < 2000) {
+						manager.statusText = "Waiting for shop before buying " + itemName + "...";
 						return;
-						
+					}
+				}
+
+				cmd.buyTimer = now;
+				cmd.waitShopTimer = null;
+				cmd.initialQty = AqwApi.inventory.getQuantity(itemName);
+				manager.statusText = "Buying " + itemName + " (x" + buyQty + ")...";
+				AqwApi.shop.buyItem(itemName, buyQty);
+				return;
+			}
+
+			// Subsequent ticks: check if item arrived in inventory
+			if (AqwApi.inventory.getQuantity(itemName) > cmd.initialQty) {
+				cmd.buyTimer = null;
+				cmd.initialQty = null;
+				manager.currentIndex++;
+				return;
+			}
+
+			// Timeout after 4000ms
+			if (now - cmd.buyTimer >= 4000) {
+				ApiLogger.warn("Shop", "Buy '" + itemName + "' timed out! Continuing...");
+				cmd.buyTimer = null;
+				cmd.initialQty = null;
+				manager.currentIndex++;
+			}
 		}
 
 		public static function cmd_sell(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 							AqwApi.shop.sellItem(cmd.args.join(" "));
@@ -901,7 +994,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_jump(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 2 && world != null && "moveToCell" in world) {
 							world.moveToCell(cmd.args[0], cmd.args[1]);
@@ -913,7 +1006,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_mapdump(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						// Print all monsters on the map with name, MMID, and cell to chat
 						if (world != null && world.monsters != null && com.aqwapi.AqwApi.game.chatF != null) {
@@ -937,7 +1030,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_jumptommid(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1 && world != null && world.monsters != null) {
 							var targetMMID:String = cmd.args[0];
@@ -975,7 +1068,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_jumptomob(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						// Jump to the cell of a named monster: JUMPTOMOB Chaos Sp-Eye
 						if (cmd.args.length >= 1) {
@@ -995,7 +1088,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_loadbank(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.requested == null) {
 							cmd.requested = true;
@@ -1021,7 +1114,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_manual_unbank(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 														var actionIsBank:Boolean = (cmd.action == "MANUAL_BANK");
@@ -1063,7 +1156,7 @@ package com.aqwapi.commands {
 
 		public static function cmd_manual_bank(cmd:Object, manager:ScriptManager):void {
 			var world:* = com.aqwapi.AqwApi.game.world;
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			var qid:int;
 						if (cmd.args.length >= 1) {
 														var actionIsBank:Boolean = (cmd.action == "MANUAL_BANK");

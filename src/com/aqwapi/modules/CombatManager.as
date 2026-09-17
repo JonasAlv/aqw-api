@@ -1,6 +1,6 @@
 package com.aqwapi.modules {
 	import com.aqwapi.events.ApiEvent;
-
+	import com.aqwapi.utils.ApiLogger;
 
 	import flash.events.TimerEvent;
 	import flash.utils.Timer;
@@ -64,8 +64,10 @@ package com.aqwapi.modules {
 				}
 			}
 			
-			com.aqwapi.AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.COMBAT_TOGGLED, isSmart ? "Smart Combat Activated" : "Custom Combat Activated"));
-			if (!silent && com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", isSmart ? "Smart Combat Activated" : "Custom Combat Activated", "SERVER", "", 0);
+			var msg:String = isSmart ? "Smart Combat Activated" : "Custom Combat Activated";
+			ApiLogger.info("Combat", msg);
+			com.aqwapi.AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.COMBAT_TOGGLED, msg));
+			if (!silent && com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", msg, "SERVER", "", 0);
 			if (_timer == null) {
 				_timer = new Timer(500);
 				_timer.addEventListener(TimerEvent.TIMER, onTick, false, 0, true);
@@ -74,10 +76,15 @@ package com.aqwapi.modules {
 		}
 
 		public static function stop():void {
+			var wasOn:Boolean = IS_ON;
 			IS_ON = false;
 			if (_timer != null) { _timer.stop(); _timer = null; }
 			lockedMMID = null;
 			targetName = null;
+			if (wasOn) {
+				ApiLogger.info("Combat", "Combat Stopped!");
+				com.aqwapi.AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.COMBAT_TOGGLED, "Combat Stopped!"));
+			}
 		}
 
 		public static function setCustomRotation(rotation:Array):void {

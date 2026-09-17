@@ -105,6 +105,21 @@ public function equip(itemNameOrId:String):void {
 			}
         }
 
+        public function isEquipped(itemNameOrId:String):Boolean {
+            if (!_game || !_game.world || !_game.world.myAvatar || !_game.world.myAvatar.items) return false;
+            var itemId:int = parseInt(itemNameOrId);
+            var isIdLookup:Boolean = !isNaN(itemId) && itemId > 0;
+            var targetName:String = itemNameOrId.toLowerCase();
+            for each (var item:Object in _game.world.myAvatar.items) {
+                if (item == null || item.sName == null) continue;
+                var matches:Boolean = isIdLookup ? (item.ItemID == itemId) : (String(item.sName).toLowerCase() == targetName);
+                if (matches) {
+                    return item.bEquip == 1 || item.bEquip == "1" || item.bEquip == true;
+                }
+            }
+            return false;
+        }
+
         public function equipUsable(itemNameOrId:String):void {
             if (!_game || !_game.world || !_game.world.myAvatar || !_game.world.myAvatar.items) return;
             var itemId:int = parseInt(itemNameOrId);

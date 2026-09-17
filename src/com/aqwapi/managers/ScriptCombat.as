@@ -78,6 +78,14 @@ package com.aqwapi.managers {
             return CombatManager.IS_ON;
         }
 
+        public function get isSmartRunning():Boolean {
+            return CombatManager.IS_ON && CombatManager.isSmart;
+        }
+
+        public function get isCustomRunning():Boolean {
+            return CombatManager.IS_ON && !CombatManager.isSmart;
+        }
+
         public function get mode():String {
             return CombatManager.skillMode;
         }

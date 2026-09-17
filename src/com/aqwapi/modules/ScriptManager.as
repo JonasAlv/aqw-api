@@ -1,11 +1,12 @@
 package com.aqwapi.modules {
 	import com.aqwapi.events.ApiEvent;
-		import com.aqwapi.data.EntityDTO;
+	import com.aqwapi.utils.ApiLogger;
+	import com.aqwapi.data.EntityDTO;
 	import com.aqwapi.AqwApi;
 	import com.aqwapi.commands.ScriptCommands;
 	import flash.events.TimerEvent;
-	import game.Network;
 	import flash.utils.Timer;
+	import flash.utils.getTimer;
 
 	public class ScriptManager {
 		private var _timer:Timer;
@@ -113,9 +114,12 @@ package com.aqwapi.modules {
 			}
 			_timer.start();
 			statusText = "Running...";
+			ApiLogger.info("Script", "Script Started!");
+			AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.SCRIPT_STARTED, "Script Started!"));
 		}
 
 		public function stop():void {
+			var wasRunning:Boolean = isRunning;
 			isRunning = false;
 			_timer.stop();
 			statusText = "Stopped.";
@@ -130,6 +134,10 @@ package com.aqwapi.modules {
 						world.moveToCell(world.strFrame, world.strPad);
 					}
 				} catch (e:Error) {}
+			}
+			if (wasRunning) {
+				ApiLogger.info("Script", "Script Stopped!");
+				AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.SCRIPT_STOPPED, "Script Stopped!"));
 			}
 		}
 
@@ -151,17 +159,17 @@ package com.aqwapi.modules {
 				var bgQuest:Boolean = AqwApi.quest != null && AqwApi.quest.isAutoRunning;
 				if (bgCombat || bgQuest) {
 					statusText = bgCombat ? "Auto-combat running" : "Auto-quest running";
-					waitTimer = new Date().getTime() + 10000;
+					waitTimer = getTimer() + 10000;
 					return;
 				}
 				stop();
 				statusText = "Script Finished!";
-				com.aqwapi.AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.SCRIPT_STOPPED, "Script Finished!"));
-				if (com.aqwapi.AqwApi.game && com.aqwapi.AqwApi.game.chatF) com.aqwapi.AqwApi.game.chatF.pushMsg("warning", "Script Finished!", "API", "", 0);
+				ApiLogger.info("Script", "Script Finished!");
+				AqwApi.dispatcher.dispatchEvent(new ApiEvent(ApiEvent.NOTIFICATION, "Script Finished!"));
 				return;
 			}
 			
-			var now:Number = new Date().getTime();
+			var now:Number = getTimer();
 			if (waitTimer > 0 && now < waitTimer) {
 				return; // Still waiting
 			}

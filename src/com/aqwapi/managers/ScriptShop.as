@@ -21,7 +21,7 @@ package com.aqwapi.managers {
 
 public function buyItem(itemNameOrId:String, quantity:int = 1):void {
 		if (quantity < 1) quantity = 1;
-		if (_game == null || _game.world == null || _game.ui == null || _game.ui.mcPopup == null || _game.ui.mcPopup.currentLabel != "Shop") return;
+		if (_game == null || _game.world == null) return;
 
 		var targetId:int = parseInt(itemNameOrId);
 		var isIdLookup:Boolean = !isNaN(targetId) && targetId > 0;
@@ -111,8 +111,10 @@ public function sellItem(itemNameOrId:String, quantity:int = 1):void {
 	}
 
 		public function get isShopLoaded():Boolean {
-			if (_game == null || _game.ui == null || _game.ui.mcPopup == null) return false;
-			return _game.ui.mcPopup.currentLabel == "Shop";
+			if (_game == null) return false;
+			if (_game.world != null && _game.world.shopinfo != null && _game.world.shopinfo.items != null) return true;
+			if (_game.ui != null && _game.ui.mcPopup != null && _game.ui.mcPopup.currentLabel == "Shop") return true;
+			return false;
 		}
 
 		public function get loadedShopId():int {
