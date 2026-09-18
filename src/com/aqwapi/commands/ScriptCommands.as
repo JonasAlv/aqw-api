@@ -20,21 +20,52 @@ package com.aqwapi.commands {
 		}
 
 		public static function cmd_join(cmd:Object, manager:ScriptManager):void {
-			var world:* = com.aqwapi.AqwApi.game.world;
 			var now:Number = getTimer();
-			var qid:int;
-					if (cmd.args.length >= 1) {
-						var mapName:String = cmd.args[0];
-						var cell:String = cmd.args.length >= 2 ? cmd.args[1] : "Enter";
-						var pad:String = cmd.args.length >= 3 ? cmd.args[2] : "Spawn";
-						
-						manager.statusText = "Joining " + mapName + "...";
-						AqwApi.map.join(mapName, cell, pad);
-						manager.waitTimer = now + 4000;
-					}
-					manager.currentIndex++;
-					return;
-						
+			if (cmd.args.length < 1) {
+				manager.currentIndex++;
+				return;
+			}
+
+			var mapName:String = String(cmd.args[0]);
+			var cell:String = cmd.args.length >= 2 ? String(cmd.args[1]) : "Enter";
+			var pad:String = cmd.args.length >= 3 ? String(cmd.args[2]) : "Spawn";
+			var targetMapClean:String = mapName.split("-")[0].toLowerCase();
+			var curMapClean:String = AqwApi.map.name.toLowerCase();
+
+			// If already in target map and loaded, just jump cell
+			if (curMapClean == targetMapClean && AqwApi.map.isLoaded) {
+				AqwApi.map.jump(cell, pad);
+				cmd.joinTimer = null;
+				manager.currentIndex++;
+				return;
+			}
+
+			// First tick: send join request
+			if (cmd.joinTimer == null) {
+				cmd.joinTimer = now;
+				manager.statusText = "Joining " + mapName + "...";
+				AqwApi.map.join(mapName, cell, pad);
+				return;
+			}
+
+			// Subsequent ticks: check if arrived and loaded
+			if (curMapClean == targetMapClean && AqwApi.map.isLoaded) {
+				AqwApi.map.jump(cell, pad);
+				cmd.joinTimer = null;
+				manager.currentIndex++;
+				return;
+			}
+
+			// Safety timeout: 7000ms
+			if (now - cmd.joinTimer > 7000) {
+				ApiLogger.warn("Map", "Join " + mapName + " timed out! Continuing...");
+				cmd.joinTimer = null;
+				manager.currentIndex++;
+				return;
+			}
+
+			manager.statusText = "Waiting for " + mapName + " to load...";
+			return;
 		}
 
 		public static function cmd_reload(cmd:Object, manager:ScriptManager):void {
@@ -501,38 +532,58 @@ package com.aqwapi.commands {
 			var world:* = com.aqwapi.AqwApi.game.world;
 			var now:Number = getTimer();
 			var qid:int;
-						if (cmd.args.length >= 1) {
-							var combatArg:String = cmd.args[0].toLowerCase();
-							if (combatArg == "stop") {
-								CombatManager.stop();
-								manager.statusText = "Combat stopped";
-							} else if (combatArg == "smart") {
-								CombatManager.start(true, true);
-								manager.statusText = "Combat: Smart";
-							} else if (combatArg == "custom") {
-								var rotInts:Array = [];
-								if (cmd.args.length >= 2) {
-									var rotRaw:String = String(cmd.args[1]);
-									if (rotRaw.indexOf(",") != -1) {
-										var rotParts:Array = rotRaw.split(",");
-										for each (var rp:String in rotParts) {
-											var ri:int = parseInt(rp);
-											if (!isNaN(ri) && ri > 0) rotInts.push(ri);
-										}
-									} else {
-										for (var rci:int = 0; rci < rotRaw.length; rci++) {
-											var rcVal:int = parseInt(rotRaw.charAt(rci));
-											if (!isNaN(rcVal) && rcVal > 0) rotInts.push(rcVal);
-										}
-									}
-									if (rotInts.length > 0) CombatManager.setCustomRotation(rotInts);
-								}
-								CombatManager.start(false, true);
-								manager.statusText = rotInts.length > 0 ? "Combat: Custom [" + rotInts.join("-") + "]" : "Combat: Custom";
+			if (cmd.args != null && cmd.args.length >= 1) {
+				var firstArg:String = String(cmd.args[0]).replace(/^\s+|\s+$/g, "").toLowerCase();
+				if (firstArg == "stop") {
+					CombatManager.stop();
+					manager.statusText = "Combat stopped";
+					ApiLogger.info("Combat", "Combat stopped");
+				} else if (firstArg == "smart") {
+					CombatManager.start(true, false);
+					manager.statusText = "Combat: Smart";
+					ApiLogger.info("Combat", "Combat: Smart");
+				} else if (firstArg.indexOf("custom") == 0) {
+					var rotInts:Array = [];
+					var rotParts:Array = [];
+					var afterCustom:String = String(firstArg.substr(6)).replace(/^\s+|\s+$/g, "");
+					if (afterCustom.length > 0) {
+						rotParts.push(afterCustom);
+					}
+					for (var i:int = 1; i < cmd.args.length; i++) {
+						var aStr:String = String(cmd.args[i]).replace(/^\s+|\s+$/g, "");
+						if (aStr.length > 0) rotParts.push(aStr);
+					}
+
+					for each (var p:String in rotParts) {
+						if (p.indexOf(",") != -1) {
+							var sub:Array = p.split(",");
+							for each (var s:String in sub) {
+								var v:int = parseInt(s.replace(/^\s+|\s+$/g, ""));
+								if (v > 0) rotInts.push(v);
 							}
-							manager.currentIndex++;
+						} else if (p.length > 1 && parseInt(p) > 9) {
+							for (var ci:int = 0; ci < p.length; ci++) {
+								var cv:int = parseInt(p.charAt(ci));
+								if (cv > 0) rotInts.push(cv);
+							}
+						} else {
+							var vSingle:int = parseInt(p);
+							if (vSingle > 0) rotInts.push(vSingle);
 						}
-						return;
+					}
+
+					if (rotInts.length > 0) {
+						CombatManager.setCustomRotation(rotInts);
+					}
+					CombatManager.start(false, false);
+					manager.statusText = rotInts.length > 0 ? "Combat: Custom [" + rotInts.join("-") + "]" : "Combat: Custom";
+					ApiLogger.info("Combat", manager.statusText);
+				}
+				manager.currentIndex++;
+			} else {
+				manager.currentIndex++;
+			}
+			return;
 
 		}
 
